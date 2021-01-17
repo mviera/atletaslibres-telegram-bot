@@ -3,8 +3,12 @@
 import os
 import sys
 import re
+import random
+from threading import Thread
+from time import sleep
 sys.path.insert(0, './vendor')
 import telebot
+import schedule
 
 
 global CHAT_ID
@@ -12,7 +16,7 @@ global CHAT_ID
 CHAT_ID = -1001423990122
 
 # Atletas Libres v2 (dev)
-# CHAT_ID = -1001274720989
+#CHAT_ID = -1001274720989
 BOT_TOKEN = os.environ['TELEGRAM_TOKEN']
 bot = telebot.TeleBot(BOT_TOKEN)
 
@@ -35,8 +39,38 @@ text_messages = {
         u' 5) Digan lo que te digan en el grupo, no es obligatorio invitar'
         u' a cerveza :-D\n'
         u'Para cualquier otra cosa, dudas, ánimo u orientación'
-        u' somos todo oídos.'
+        u' somos todo oídos.',
+
+    'motivation_quotes': [
+        u'Nunca he sido pobre, solo he estado sin dinero.\nSer pobre es un' \
+        u' estado mental. No tener dinero es una condición temporal',
+        u'Si hay que empezar de cero, pues se empieza',
+        u'Si quires algo que nunca has tenido, tendrás que hacer algo que' \
+        u' nunca has hecho',
+        u'Eres tu contra ti mismo',
+        u'No te enfades. La gente no te hace cosas, simplemente hace cosas.' \
+        u' Tú decides si te afectan o no',
+        u'Si mejoras cada día un 1%, en un año habrás mejorado un 365%',
+        u'Entrenar es como el matrimonio, si haces trampa no funciona',
+        u'La pregunta no es ¿puedes? La pregunta es ¿quieres?',
+        u'Me visto de negro cuando voy al Gym porque es el funeral de mis' \
+        u' calorías',
+        u'Integridad es hacer lo correcto aunque nadie esté mirando',
+    ]
 }
+
+
+def schedule_checker():
+    while True:
+        schedule.run_pending()
+        sleep(1)
+
+
+def monday_message():
+    text = u'Burros días!\nEs Lunes, vamos a darlo todo esta semana!'
+    audio = open('media/good-morning-vietnam.mp3', 'rb')
+    bot.send_message(CHAT_ID, text)
+    bot.send_audio(CHAT_ID, audio)
 
 
 @bot.message_handler(func=lambda m: True, content_types=['new_chat_members'])
@@ -59,6 +93,14 @@ def say_something(message):
     bot.send_message(CHAT_ID, msg)
 
 
+@bot.message_handler(commands=['motivation'])
+def say_something(message):
+    random_quote = random.randint(0, len(text_messages['motivation_quotes']) -1)
+    bot.send_message(CHAT_ID, "«" +
+                     text_messages['motivation_quotes'][random_quote] + '»',
+                     parse_mode= 'Markdown')
+
+
 @bot.message_handler(func=lambda message: True)
 def joke(message):
     matches = ["estoy", "gordo"]
@@ -69,4 +111,7 @@ def joke(message):
         bot.reply_to(message, mimimi)
 
 
+schedule.every().monday.at("09:00").do(monday_message)
+schedule.every().day.at("09:00").do(monday_message)
+Thread(target=schedule_checker).start()
 bot.polling()
