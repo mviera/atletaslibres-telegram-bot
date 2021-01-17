@@ -41,7 +41,6 @@ text_messages = {
 
 @bot.message_handler(func=lambda m: True, content_types=['new_chat_members'])
 def on_user_joins(message):
-    # name = message.new_chat_members.first_name
     name = ''
     if 'first_name' in message.json['new_chat_members'][0] and \
        message.json['new_chat_members'][0]['first_name'] is not None:
