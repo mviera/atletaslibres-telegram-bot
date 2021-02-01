@@ -4,6 +4,7 @@ import os
 import sys
 import re
 import random
+import time
 from threading import Thread
 from time import sleep
 sys.path.insert(0, './vendor')
@@ -59,6 +60,69 @@ text_messages = {
     ]
 }
 
+single_exercises = {
+    'Pushups': [10, 25, 50],
+    'Negative Pushups': [10, 25, 50],
+    'Situps': [10, 25, 50],
+    'Squats': [10, 25, 50],
+    'Lunges': [10, 25, 50],
+    'Bear Walk': ['1x10m', '2x10m'],
+    'Burpees': [10, 25],
+    'Cat Cow': [10, 25, 50],
+    'Climbers': [10, 25, 50],
+    'Jumping Jacks': [10, 25, 50],
+    'Leg Raises': [10, 25, 50],
+    'Pikes': [10, 25, 50],
+    'Plank Knees-to-chest': [10, 25, 50],
+    'Scissors Kicks': [10, 25, 50],
+}
+
+
+@bot.message_handler(commands=['challenge'])
+def weekly_challenge(message):
+
+    challenge_lock = 'weekly_challenge.lock'
+
+    def create_challenge():
+        NUM_MAX_EXERCISES = 5
+        NUM_ROUNDS = 3
+        challenge = {}
+        for n in range(NUM_MAX_EXERCISES):
+            exercise = random.choice(list(single_exercises.keys()))
+            reps = random.choice(single_exercises[exercise])
+            challenge[exercise] = reps
+            single_exercises.pop(exercise)
+
+        msg = u"¡Atletas!\nEl reto para esta semana es:\n" + str(NUM_ROUNDS) + " RONDAS\n"
+        for i in challenge:
+            if i == 'Bear Walk':
+                msg += u" » " + str(challenge[i]) + " " + i + "\n"
+            else:
+                msg += u" » " + str(challenge[i]) + "x " + i + "\n"
+
+        msg += u"\n¡Ánimo! #NOEXCUSES"
+        print(msg)
+        bot.send_message(CHAT_ID, msg, parse_mode= 'Markdown')
+
+
+    if not os.path.exists(challenge_lock):
+        open(challenge_lock, 'w')
+        create_challenge()
+
+    else:
+        now = time.time()
+        #a_week = 7 * 86400
+        a_week = 60
+
+        if os.stat(challenge_lock).st_mtime < now - a_week:
+            os.remove(challenge_lock)
+            create_challenge()
+
+        else:
+            msg = u"¡Atletas! ¿Cómo lleváis el reto semanal?\n" \
+                    "Aún hay tiempo, ¡Vamos! #NOEXCUSES"
+            bot.send_message(CHAT_ID, msg, parse_mode= 'Markdown')
+
 
 def schedule_checker():
     while True:
@@ -71,6 +135,16 @@ def monday_message():
     audio = open('media/good-morning-vietnam.mp3', 'rb')
     bot.send_message(CHAT_ID, text)
     bot.send_audio(CHAT_ID, audio)
+
+
+def daily_message():
+    #text = u'¡Burros días!\n¡Vamos a por el día!\n'
+    text = u'¡Burros días!\n¿Qué tal esos cuerpos serranos?!\n'
+    random_quote = random.randint(0, len(text_messages['motivation_quotes']) -1)
+    audio = open('media/good-morning-vietnam.mp3', 'rb')
+    bot.send_message(CHAT_ID, text + "«" + text_messages['motivation_quotes'][random_quote] + '»',
+                     parse_mode= 'Markdown')
+#   bot.send_audio(CHAT_ID, audio)
 
 
 @bot.message_handler(func=lambda m: True, content_types=['new_chat_members'])
@@ -110,8 +184,7 @@ def joke(message):
         mimimi = vowels.sub('i', message.text)
         bot.reply_to(message, mimimi)
 
-
 schedule.every().monday.at("09:00").do(monday_message)
-schedule.every().day.at("09:00").do(monday_message)
+schedule.every().day.at("09:05").do(daily_message)
 Thread(target=schedule_checker).start()
 bot.polling()
